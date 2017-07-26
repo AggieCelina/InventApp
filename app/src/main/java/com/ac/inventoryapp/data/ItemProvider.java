@@ -17,13 +17,19 @@ import android.util.Log;
 
 public class ItemProvider extends ContentProvider {
 
-    /** Tag for the log messages */
+    /**
+     * Tag for the log messages
+     */
     public static final String LOG_TAG = ItemProvider.class.getSimpleName();
 
-    /** URI matcher code for the content URI for the pets table */
+    /**
+     * URI matcher code for the content URI for the items table
+     */
     private static final int ITEMS = 100;
 
-    /** URI matcher code for the content URI for the pets table */
+    /**
+     * URI matcher code for the content URI for the items table
+     */
     private static final int ITEM_ID = 101;
 
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
@@ -34,7 +40,9 @@ public class ItemProvider extends ContentProvider {
         sUriMatcher.addURI(ItemContract.CONTENT_AUTHORITY, ItemContract.PATH_ITEMS + "/#", ITEM_ID);
     }
 
-    /** Database helper object */
+    /**
+     * Database helper object
+     */
     private ItemDbHelper mDbHelper;
 
     @Override
@@ -52,7 +60,7 @@ public class ItemProvider extends ContentProvider {
         Cursor cursor;
 
         int match = sUriMatcher.match(uri);
-        switch (match){
+        switch (match) {
             case ITEMS:
                 cursor = database.query(ItemContract.ItemEntry.TABLE_NAME, projection, selection, selectionArgs,
                         null, null, sortOrder);
@@ -118,7 +126,7 @@ public class ItemProvider extends ContentProvider {
         // Get writeable database
         SQLiteDatabase database = mDbHelper.getWritableDatabase();
 
-        // Insert the new pet with the given values
+        // Insert the new item with the given values
         long id = database.insert(ItemContract.ItemEntry.TABLE_NAME, null, values);
         // If the ID is -1, then the insertion failed. Log an error and return null.
         if (id == -1) {
@@ -126,7 +134,7 @@ public class ItemProvider extends ContentProvider {
             return null;
         }
 
-        // Notify all listeners that the data has changed for the pet content URI
+        // Notify all listeners that the data has changed for the item content URI
         getContext().getContentResolver().notifyChange(uri, null);
 
         // Return the new URI with the ID (of the newly inserted row) appended at the end
@@ -150,7 +158,7 @@ public class ItemProvider extends ContentProvider {
             case ITEM_ID:
                 // Delete a single row given by the ID in the URI
                 selection = ItemContract.ItemEntry._ID + "=?";
-                selectionArgs = new String[] { String.valueOf(ContentUris.parseId(uri)) };
+                selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
                 rowsDeleted = database.delete(ItemContract.ItemEntry.TABLE_NAME, selection, selectionArgs);
                 break;
             default:
@@ -174,11 +182,11 @@ public class ItemProvider extends ContentProvider {
             case ITEMS:
                 return updateItem(uri, contentValues, selection, selectionArgs);
             case ITEM_ID:
-                // For the PET_ID code, extract out the ID from the URI,
+                // For the ITEM_ID code, extract out the ID from the URI,
                 // so we know which row to update. Selection will be "_id=?" and selection
                 // arguments will be a String array containing the actual ID.
                 selection = ItemContract.ItemEntry._ID + "=?";
-                selectionArgs = new String[] { String.valueOf(ContentUris.parseId(uri)) };
+                selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
                 return updateItem(uri, contentValues, selection, selectionArgs);
             default:
                 throw new IllegalArgumentException("Update is not supported for " + uri);
@@ -186,7 +194,7 @@ public class ItemProvider extends ContentProvider {
     }
 
     private int updateItem(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        // If the {@link ItemEntry#COLUMN_ITEMT_NAME} key is present,
+        // If the {@link ItemEntry#COLUMN_ITEM_NAME} key is present,
         // check that the name value is not null.
         if (values.containsKey(ItemContract.ItemEntry.COLUMN_ITEM_NAME)) {
             String name = values.getAsString(ItemContract.ItemEntry.COLUMN_ITEM_NAME);

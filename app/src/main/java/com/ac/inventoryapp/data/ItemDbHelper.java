@@ -22,13 +22,13 @@ public class ItemDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        // Create a String that contains the SQL statement to create the pets table
+        // Create a String that contains the SQL statement to create the items table
         String SQL_CREATE_ITEMS_TABLE = "CREATE TABLE " + ItemContract.ItemEntry.TABLE_NAME + " ("
                 + ItemContract.ItemEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + ItemContract.ItemEntry.COLUMN_ITEM_NAME + " TEXT NOT NULL, "
                 + ItemContract.ItemEntry.COLUMN_ITEM_QUANTITY + " INTEGER NOT NULL DEFAULT 0, "
                 + ItemContract.ItemEntry.COLUMN_ITEM_PRICE + " INTEGER NOT NULL DEFAULT 0, "
-                + ItemContract.ItemEntry.COLUMN_ITEM_IMAGE + " BLOB);";
+                + ItemContract.ItemEntry.COLUMN_ITEM_IMAGE + " INTEGER NOT NULL DEFAULT 0);";
 
         // Execute the SQL statement
         db.execSQL(SQL_CREATE_ITEMS_TABLE);

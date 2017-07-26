@@ -2,7 +2,6 @@ package com.ac.inventoryapp;
 
 import android.app.AlertDialog;
 import android.app.LoaderManager;
-import android.content.ClipData;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.DialogInterface;
@@ -18,36 +17,51 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.ac.inventoryapp.data.Images;
 import com.ac.inventoryapp.data.ItemContract;
 
 /**
  * Created by marka1 on 7/25/17.
  */
 
-public class EditorActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
+public class EditorActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
-    /** Identifier for the item data loader */
+    /**
+     * Identifier for the item data loader
+     */
     private static final int EXISTING_ITEM_LOADER = 0;
+    public static final String EDIT_ITEM_ID = "edit_item_id";
 
-    /** Content URI for the existing item (null if it's a new item) */
+    /**
+     * Content URI for the existing item (null if it's a new item)
+     */
     private Uri mCurrentItemUri;
 
-    /** EditText field to enter the item's name */
+    /**
+     * EditText field to enter the item's name
+     */
     private EditText mNameEditText;
 
-    /** EditText field to enter the item's price */
+    /**
+     * EditText field to enter the item's price
+     */
     private EditText mPriceEditText;
 
-    /** EditText field to enter the item's quantity */
+    /**
+     * EditText field to enter the item's quantity
+     */
     private TextView mQuantityTextView;
 
-    /** Boolean flag that keeps track of whether the item has been edited (true) or not (false) */
+    /**
+     * Boolean flag that keeps track of whether the item has been edited (true) or not (false)
+     */
     private boolean mItemHasChanged = false;
 
     private Button plusButton;
@@ -56,6 +70,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
     public int quantityTemp = 0;
 
+    Button orderButton;
+    private Spinner imageSpinner;
     /**
      * OnTouchListener that listens for any user touches on a View, implying that they are modifying
      * the view, and we change the mITemHasChanged boolean to true.
@@ -67,6 +83,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             return false;
         }
     };
+    private int editItemId;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,8 +106,9 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             // (It doesn't make sense to delete an item that hasn't been created yet.)
             invalidateOptionsMenu();
         } else {
+            editItemId = getIntent().getIntExtra(EDIT_ITEM_ID, 0);
             // Otherwise this is an existing item, so change app bar to say "Edit Item"
-            setTitle(getString(R.string.editor_activity_title_edit_pet));
+            setTitle(getString(R.string.editor_activity_title_edit_item));
 
             // Initialize a loader to read the item data from the database
             // and display the current values in the editor
@@ -100,12 +119,16 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mNameEditText = (EditText) findViewById(R.id.edit_item_name);
         mQuantityTextView = (TextView) findViewById(R.id.edit_item_quantity);
         mPriceEditText = (EditText) findViewById(R.id.edit_item_price);
+        orderButton = (Button) findViewById(R.id.order);
+        imageSpinner = (Spinner) findViewById(R.id.image);
 
         // Setup OnTouchListeners on all the input fields, so we can determine if the user
         // has touched or modified them. This will let us know if there are unsaved changes
         // or not, if the user tries to leave the editor without saving.
         mNameEditText.setOnTouchListener(mTouchListener);
+
         mQuantityTextView.setOnTouchListener(mTouchListener);
+
         mPriceEditText.setOnTouchListener(mTouchListener);
 
         minusButton = (Button) findViewById(R.id.minus_button);
@@ -124,6 +147,18 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 addToQuantity();
             }
         });
+
+        orderButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                composeEmail();
+            }
+        });
+
+        Images[] values = Images.values();
+        ArrayAdapter<Images> spinnerArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, values);
+        spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        imageSpinner.setAdapter(spinnerArrayAdapter);
     }
 
     /**
@@ -136,6 +171,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         String quantityString = mQuantityTextView.getText().toString().trim();
         String priceString = mPriceEditText.getText().toString().trim();
 
+        Images selectedItem = (Images) imageSpinner.getSelectedItem();
+
         // Check if this is supposed to be a new item
         // and check if all the fields in the editor are blank
         if (mCurrentItemUri == null &&
@@ -147,10 +184,11 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         }
 
         // Create a ContentValues object where column names are the keys,
-        // and pet attributes from the editor are the values.
+        // and item attributes from the editor are the values.
         ContentValues values = new ContentValues();
         values.put(ItemContract.ItemEntry.COLUMN_ITEM_NAME, nameString);
         values.put(ItemContract.ItemEntry.COLUMN_ITEM_QUANTITY, quantityString);
+        values.put(ItemContract.ItemEntry.COLUMN_ITEM_IMAGE, selectedItem.getImageResource());
         // If the price is not provided by the user, don't try to parse the string into an
         // integer value. Use 0 by default.
         int price = 0;
@@ -161,7 +199,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
         // Determine if this is a new or existing item by checking if mCurrentItemUri is null or not
         if (mCurrentItemUri == null) {
-            // This is a NEW item, so insert a new pet into the provider,
+            // This is a NEW item, so insert a new item into the provider,
             // returning the content URI for the new item.
             Uri newUri = getContentResolver().insert(ItemContract.ItemEntry.CONTENT_URI, values);
 
@@ -176,7 +214,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                         Toast.LENGTH_SHORT).show();
             }
         } else {
-            // Otherwise this is an EXISTING item, so update the pet with content URI: mCurrentPetUri
+            // Otherwise this is an EXISTING item, so update the item with content URI: mCurrentItemUri
             // and pass in the new ContentValues. Pass in null for the selection and selection args
             // because mCurrentItemUri will already identify the correct row in the database that
             // we want to modify.
@@ -261,6 +299,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         }
         return super.onOptionsItemSelected(item);
     }
+
     /**
      * This method is called when the back button is pressed.
      */
@@ -297,7 +336,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         builder.setNegativeButton(R.string.keep_editing, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 // User clicked the "Keep editing" button, so dismiss the dialog
-                // and continue editing the pet.
+                // and continue editing the item.
                 if (dialog != null) {
                     dialog.dismiss();
                 }
@@ -308,6 +347,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
     }
+
     /**
      * Prompt the user to confirm that they want to delete this item.
      */
@@ -336,6 +376,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         AlertDialog alertDialog = builder.create();
         alertDialog.show();
     }
+
     /**
      * Perform the deletion of the item in the database.
      */
@@ -362,7 +403,6 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         finish();
     }
 
-
     @Override
     public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
         // Since the editor shows all item attributes, define a projection that contains
@@ -372,14 +412,15 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 ItemContract.ItemEntry.COLUMN_ITEM_NAME,
                 ItemContract.ItemEntry.COLUMN_ITEM_QUANTITY,
                 ItemContract.ItemEntry.COLUMN_ITEM_PRICE,
-                 };
+                ItemContract.ItemEntry.COLUMN_ITEM_IMAGE,
+        };
 
         // This loader will execute the ContentProvider's query method on a background thread
         return new CursorLoader(this,   // Parent activity context
                 mCurrentItemUri,         // Query the content URI for the current item
                 projection,             // Columns to include in the resulting Cursor
-                null,                   // No selection clause
-                null,                   // No selection arguments
+                ItemContract.ItemEntry._ID + "= ?",
+                new String[]{String.valueOf(editItemId)},
                 null);                  // Default sort order
     }
 
@@ -397,16 +438,20 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             int nameColumnIndex = cursor.getColumnIndex(ItemContract.ItemEntry.COLUMN_ITEM_NAME);
             int quantityColumnIndex = cursor.getColumnIndex(ItemContract.ItemEntry.COLUMN_ITEM_QUANTITY);
             int priceColumnIndex = cursor.getColumnIndex(ItemContract.ItemEntry.COLUMN_ITEM_PRICE);
+            int imageColumnIndex = cursor.getColumnIndex(ItemContract.ItemEntry.COLUMN_ITEM_IMAGE);
 
             // Extract out the value from the Cursor for the given column index
             String name = cursor.getString(nameColumnIndex);
             String quantity = cursor.getString(quantityColumnIndex);
             int price = cursor.getInt(priceColumnIndex);
-
+            int image = cursor.getInt(imageColumnIndex);
             // Update the views on the screen with the values from the database
             mNameEditText.setText(name);
             mQuantityTextView.setText(quantity);
             mPriceEditText.setText(Integer.toString(price));
+            Images images = Images.valueOf(image);
+
+            imageSpinner.setSelection(images.ordinal());
         }
     }
 
@@ -418,13 +463,29 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mPriceEditText.setText("");
     }
 
-    public void addToQuantity(){
+    public void addToQuantity() {
         quantityTemp = quantityTemp + 1;
         mQuantityTextView.setText(String.valueOf(quantityTemp));
     }
 
-    public void subsFromQuantity(){
-        quantityTemp = quantityTemp - 1;
-        mQuantityTextView.setText(String.valueOf(quantityTemp));
+    public void subsFromQuantity() {
+        if (quantityTemp > 0) {
+            quantityTemp = quantityTemp - 1;
+            mQuantityTextView.setText(String.valueOf(quantityTemp));
+        } else {
+            mQuantityTextView.setText(String.valueOf(0));
+        }
+    }
+
+    public void composeEmail() {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/html");
+        intent.putExtra(Intent.EXTRA_EMAIL, new String[]{"provideraddress@gmail.com"});
+        intent.putExtra(Intent.EXTRA_SUBJECT, "New order of " + mNameEditText.getText());
+        intent.putExtra(Intent.EXTRA_TEXT, "I would like to order some more of " + mNameEditText.getText() +
+                "\n" + "My current quantity is " + mQuantityTextView.getText() + "\n" + "Thanks!");
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
+        }
     }
 }

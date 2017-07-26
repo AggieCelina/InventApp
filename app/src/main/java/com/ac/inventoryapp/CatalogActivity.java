@@ -15,18 +15,21 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ListView;
 
 import com.ac.inventoryapp.data.ItemContract;
 
 
-public class CatalogActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
+public class CatalogActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
-    /** Identifier for the item data loader */
+    /**
+     * Identifier for the item data loader
+     */
     private static final int ITEM_LOADER = 0;
 
-    /** Adapter for the ListView */
+    /**
+     * Adapter for the ListView
+     */
     ItemCursorAdapter mCursorAdapter;
 
     @Override
@@ -54,12 +57,14 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         // Setup an Adapter to create a list item for each row of item data in the Cursor.
         // There is no item data yet (until the loader finishes) so pass in null for the Cursor.
         mCursorAdapter = new ItemCursorAdapter(this, null);
-        itemListView.setAdapter(mCursorAdapter);
-
-        // Setup the item click listener
-        itemListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mCursorAdapter.setOnItemAction(new ItemCursorAdapter.OnItemAction() {
             @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+            public void onSaleButtonClicked(int id, String itemQuantity) {
+                handleSaleClicked(id, itemQuantity);
+            }
+
+            @Override
+            public void onItemClicked(int id) {
                 // Create new intent to go to {@link EditorActivity}
                 Intent intent = new Intent(CatalogActivity.this, EditorActivity.class);
 
@@ -67,14 +72,26 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
                 // Set the URI on the data field of the intent
                 intent.setData(currentItemUri);
-
+                intent.putExtra(EditorActivity.EDIT_ITEM_ID, id);
                 // Launch the {@link EditorActivity} to display the data for the current item.
                 startActivity(intent);
             }
         });
+        itemListView.setAdapter(mCursorAdapter);
 
         // Kick off the loader
         getLoaderManager().initLoader(ITEM_LOADER, null, this);
+    }
+
+    private void handleSaleClicked(int id, String itemQuantity) {
+        ContentValues values = new ContentValues();
+
+        Integer integer = Integer.valueOf(itemQuantity);
+        if (integer > 0) {
+            values.put(ItemContract.ItemEntry.COLUMN_ITEM_QUANTITY, integer - 1);
+        }
+        getContentResolver().update(ItemContract.ItemEntry.CONTENT_URI, values,
+                ItemContract.ItemEntry._ID + "= ?", new String[]{String.valueOf(id)});
     }
 
     private void insertItem() {
@@ -82,8 +99,9 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         // and a dummy item's attributes are the values.
         ContentValues values = new ContentValues();
         values.put(ItemContract.ItemEntry.COLUMN_ITEM_NAME, "Blue pen");
-        values.put(ItemContract.ItemEntry.COLUMN_ITEM_QUANTITY, "1");
+        values.put(ItemContract.ItemEntry.COLUMN_ITEM_QUANTITY, "131");
         values.put(ItemContract.ItemEntry.COLUMN_ITEM_PRICE, "10");
+        values.put(ItemContract.ItemEntry.COLUMN_ITEM_IMAGE, R.drawable.smile);
 
         // Insert a new row for the dummy item into the provider using the ContentResolver.
         // Use the {@link ItemEntry#CONTENT_URI} to indicate that we want to insert
@@ -111,12 +129,8 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // User clicked on a menu option in the app bar overflow menu
+        //Use switch in case you want to add in the future more menu options
         switch (item.getItemId()) {
-            // Respond to a click on the "Insert dummy data" menu option
-            case R.id.action_insert_dummy_data:
-                insertItem();
-                return true;
-            // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
                 deleteAllItems();
                 return true;
@@ -124,15 +138,15 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         return super.onOptionsItemSelected(item);
     }
 
-
-
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         // Define a projection that specifies the columns from the table we care about.
         String[] projection = {
                 ItemContract.ItemEntry._ID,
                 ItemContract.ItemEntry.COLUMN_ITEM_NAME,
-                ItemContract.ItemEntry.COLUMN_ITEM_PRICE};
+                ItemContract.ItemEntry.COLUMN_ITEM_QUANTITY,
+                ItemContract.ItemEntry.COLUMN_ITEM_PRICE,
+                ItemContract.ItemEntry.COLUMN_ITEM_IMAGE};
 
         // This loader will execute the ContentProvider's query method on a background thread
         return new CursorLoader(this,   // Parent activity context
@@ -145,7 +159,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        // Update {@link PetCursorAdapter} with this new cursor containing updated pet data
+        // Update {@link ItemCursorAdapter} with this new cursor containing updated item data
         mCursorAdapter.swapCursor(data);
     }
 
